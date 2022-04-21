@@ -41,10 +41,14 @@ enrollment <- tbl(con, "ENROLLMENT")  %>%
 
 enrollment.sum <- enrollment %>%
     filter(YEAR == max(YEAR)) %>%
+    group_by(DISTRICT, SCHOOL, CDS_CODE) %>%
+    mutate(School.TOTAL = sum(ENR_TOTAL)) %>%
+    
     group_by(DISTRICT, SCHOOL, CDS_CODE, ETHNIC) %>%
     summarise(TOTAL = sum(ENR_TOTAL)) %>%
     mutate(ETHNIC = as.character(ETHNIC),
-           Percent = TOTAL/sum(TOTAL)) %>%
+           Percent.AfAm = round2(TOTAL*100/sum(TOTAL),1),
+           School.Total = sum(TOTAL)) %>%
     left_join_codebook("ENROLLMENT", "ETHNIC" )
 
 
@@ -64,8 +68,10 @@ afam.mry.vax <- afam %>%
     left_join(entit.mry) %>%
     left_join(vax.perc) %>%
     mutate(perc.not.full = 100 - perc.fully.vax,
-        combo = Percent*perc.not.full) %>%
-    arrange(desc(combo))
+        combo = round2( Percent.AfAm*perc.not.full, 0)) %>%
+    arrange(desc(combo)) %>%
+    ungroup() %>%
+    select(DISTRICT, SCHOOL, Total.AfAm = TOTAL, Percent.AfAm, School.Total, Zip5,perc.fully.vax, perc.not.full, combo)
 
 
 write_sheet(afam.mry.vax,
